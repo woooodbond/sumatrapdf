@@ -1,10 +1,10 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
-#include "WinUtil.h"
-#include "GdiPlusUtil.h"
-#include "HtmlParserLookup.h"
+#include "utils/BaseUtil.h"
+#include "utils/WinUtil.h"
+#include "utils/GdiPlusUtil.h"
+#include "utils/HtmlParserLookup.h"
 #include "Mui.h"
 
 /*
@@ -485,13 +485,13 @@ size_t StringLenForWidth(ITextRender* textMeasure, const WCHAR* s, size_t len, f
         return len;
     // make the best guess of the length that fits
     size_t n = (size_t)((dx / r.Width) * (float)len);
-    CrashIf((0 == n) || (n > len));
+    CrashIf(n > len);
     r = textMeasure->Measure(s, n);
     // find the length len of s that fits within dx iff width of len+1 exceeds dx
     int dir = 1; // increasing length
     if (r.Width > dx)
         dir = -1; // decreasing length
-    for (;;) {
+    while (n > 1) {
         n += dir;
         r = textMeasure->Measure(s, n);
         if (1 == dir) {
@@ -506,6 +506,8 @@ size_t StringLenForWidth(ITextRender* textMeasure, const WCHAR* s, size_t len, f
                 return n;
         }
     }
+    // even a single char is longer than available space
+    return 0;
 }
 
 // TODO: not quite sure why spaceDx1 != spaceDx2, using spaceDx2 because

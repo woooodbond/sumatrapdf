@@ -1,9 +1,9 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "DialogSizer.h"
-#include "WinUtil.h"
+#include "utils/BaseUtil.h"
+#include "wingui/DialogSizer.h"
+#include "utils/WinUtil.h"
 
 #include "SettingsStructs.h"
 #include "GlobalPrefs.h"
@@ -721,7 +721,9 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wParam,
                 const WCHAR* cmdLine = prefs->inverseSearchCmdLine;
                 AutoFreeW inverseSearch;
                 if (!cmdLine) {
-                    inverseSearch.Set(AutoDetectInverseSearchCommands(GetDlgItem(hDlg, IDC_CMDLINE)));
+                    HWND hwnd = GetDlgItem(hDlg, IDC_CMDLINE);
+                    WCHAR* cmd = AutoDetectInverseSearchCommands(hwnd);
+                    inverseSearch.Set(cmd);
                     cmdLine = inverseSearch;
                 }
                 // Find the index of the active command line

@@ -1,12 +1,12 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
-#include "HtmlParserLookup.h"
-#include "HtmlPullParser.h"
+#include "utils/BaseUtil.h"
+#include "utils/HtmlParserLookup.h"
+#include "utils/HtmlPullParser.h"
 
 // must be last due to assert() over-write
-#include "UtAssert.h"
+#include "utils/UtAssert.h"
 
 static void Test00(const char* s, HtmlToken::TokenType expectedType) {
     HtmlPullParser parser(s, str::Len(s));
@@ -69,7 +69,7 @@ static void HtmlEntities() {
         const char* s = changed[i].s;
         const char* res = ResolveHtmlEntities(s, s + str::Len(s), nullptr);
         utassert(str::Eq(res, changed[i].res));
-        free((void*)res);
+        str::Free(res);
     }
 }
 

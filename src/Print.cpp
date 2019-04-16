@@ -1,11 +1,11 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "ScopedWin.h"
-#include "FileUtil.h"
-#include "UITask.h"
-#include "WinUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/FileUtil.h"
+#include "utils/UITask.h"
+#include "utils/WinUtil.h"
 
 #include "BaseEngine.h"
 #include "EngineManager.h"
@@ -15,14 +15,14 @@
 #include "ChmModel.h"
 #include "DisplayModel.h"
 #include "GlobalPrefs.h"
+#include "ProgressUpdateUI.h"
 #include "TextSelection.h"
 #include "TextSearch.h"
-
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
 #include "AppUtil.h"
-#include "Notifications.h"
 #include "Print.h"
 #include "Selection.h"
 #include "SumatraDialogs.h"
@@ -357,11 +357,13 @@ class PrintThreadData : public ProgressUpdateUI {
     PrintThreadData(WindowInfo* win, PrintData* data) {
         this->win = win;
         this->data = data;
-        wnd = new NotificationWnd(win->hwndCanvas, L"", _TR("Printing page %d of %d..."),
-                                  [this](NotificationWnd* wnd) { this->RemoveNotification(wnd); });
+        wnd = new NotificationWnd(win->hwndCanvas, 0);
+        wnd->wndRemovedCb = [this](NotificationWnd* wnd) { this->RemoveNotification(wnd); };
+        wnd->Create(L"", _TR("Printing page %d of %d..."));
+
         // don't use a groupId for this notification so that
         // multiple printing notifications could coexist between tabs
-        win->notifications->Add(wnd);
+        win->notifications->Add(wnd, 0);
     }
 
     // called when printing has been canceled
@@ -653,23 +655,23 @@ static short GetPaperSize(BaseEngine* engine) {
     SizeD size = engine->Transform(mediabox, 1, 1.0f / engine->GetFileDPI(), 0).Size();
 
     switch (GetPaperFormat(size)) {
-        case Paper_A2:
+        case PaperFormat::A2:
             return DMPAPER_A2;
-        case Paper_A3:
+        case PaperFormat::A3:
             return DMPAPER_A3;
-        case Paper_A4:
+        case PaperFormat::A4:
             return DMPAPER_A4;
-        case Paper_A5:
+        case PaperFormat::A5:
             return DMPAPER_A5;
-        case Paper_A6:
+        case PaperFormat::A6:
             return DMPAPER_A6;
-        case Paper_Letter:
+        case PaperFormat::Letter:
             return DMPAPER_LETTER;
-        case Paper_Legal:
+        case PaperFormat::Legal:
             return DMPAPER_LEGAL;
-        case Paper_Tabloid:
+        case PaperFormat::Tabloid:
             return DMPAPER_TABLOID;
-        case Paper_Statement:
+        case PaperFormat::Statement:
             return DMPAPER_STATEMENT;
         default:
             return 0;

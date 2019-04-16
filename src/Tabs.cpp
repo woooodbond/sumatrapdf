@@ -1,15 +1,15 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "ScopedWin.h"
-#include "WinDynCalls.h"
-#include "Dpi.h"
-#include "FileUtil.h"
-#include "GdiPlusUtil.h"
-#include "UITask.h"
-#include "WinUtil.h"
-#include "TreeCtrl.h"
+#include "utils/BaseUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/WinDynCalls.h"
+#include "utils/Dpi.h"
+#include "utils/FileUtil.h"
+#include "utils/GdiPlusUtil.h"
+#include "utils/UITask.h"
+#include "utils/WinUtil.h"
+#include "wingui/TreeCtrl.h"
 
 #include "BaseEngine.h"
 #include "EngineManager.h"
@@ -17,6 +17,8 @@
 #include "Controller.h"
 #include "Colors.h"
 #include "GlobalPrefs.h"
+#include "ProgressUpdateUI.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
@@ -646,7 +648,7 @@ void SaveCurrentTabInfo(WindowInfo* win) {
     CrashIf(!tdata);
     if (win->tocLoaded) {
         tdata->tocState.Reset();
-        HTREEITEM hRoot = TreeCtrlGetRoot(win->tocTreeCtrl);
+        HTREEITEM hRoot = win->tocTreeCtrl->GetRoot();
         if (hRoot)
             UpdateTocExpansionState(tdata, win->tocTreeCtrl, hRoot);
     }

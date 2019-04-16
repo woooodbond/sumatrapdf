@@ -1,18 +1,19 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "ScopedWin.h"
-#include "Dpi.h"
-#include "FileUtil.h"
-#include "WinUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/Dpi.h"
+#include "utils/FileUtil.h"
+#include "utils/WinUtil.h"
 
 #include "BaseEngine.h"
 #include "SettingsStructs.h"
 #include "FileHistory.h"
 #include "Colors.h"
 #include "GlobalPrefs.h"
-
+#include "ProgressUpdateUI.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "resource.h"

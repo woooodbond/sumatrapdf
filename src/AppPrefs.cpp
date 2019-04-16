@@ -1,12 +1,11 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-// utils
-#include "BaseUtil.h"
-#include "FileUtil.h"
-#include "FileWatcher.h"
-#include "UITask.h"
-#include "ScopedWin.h"
+#include "utils/BaseUtil.h"
+#include "utils/FileUtil.h"
+#include "utils/FileWatcher.h"
+#include "utils/UITask.h"
+#include "utils/ScopedWin.h"
 
 #include "BaseEngine.h"
 #include "EbookEngine.h"
@@ -14,6 +13,8 @@
 #include "SettingsStructs.h"
 #include "FileHistory.h"
 #include "GlobalPrefs.h"
+#include "ProgressUpdateUI.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "ParseCommandLine.h"
 #include "WindowInfo.h"

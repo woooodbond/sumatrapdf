@@ -6,9 +6,9 @@ class LinkHandler;
 class Notifications;
 class StressTest;
 class SumatraUIAutomationProvider;
-struct FrameRateWnd;
-struct LabelWithCloseWnd;
-struct SplitterWnd;
+class FrameRateWnd;
+class LabelWithCloseWnd;
+class SplitterWnd;
 class CaptionInfo;
 
 class PageElement;
@@ -21,20 +21,13 @@ class DisplayModel;
 class EbookController;
 class TabInfo;
 
-struct TreeCtrl;
+class TreeCtrl;
 
 /* Describes actions which can be performed by mouse */
-enum MouseAction { MA_IDLE = 0, MA_DRAGGING, MA_DRAGGING_RIGHT, MA_SELECTING, MA_SCROLLING, MA_SELECTING_TEXT };
+enum class MouseAction { Idle = 0, Dragging, DraggingRight, Selecting, Scrolling, SelectingText };
 
-enum NotificationGroup {
-    NG_RESPONSE_TO_ACTION = 1,
-    NG_FIND_PROGRESS,
-    NG_PERSISTENT_WARNING,
-    NG_PAGE_INFO_HELPER,
-    NG_CURSOR_POS_HELPER,
-    NG_STRESS_TEST_BENCHMARK,
-    NG_STRESS_TEST_SUMMARY,
-};
+extern NotificationGroupId NG_CURSOR_POS_HELPER;
+extern NotificationGroupId NG_RESPONSE_TO_ACTION;
 
 enum NotificationOptions {
     NOS_DEFAULT = 0, // timeout after 3 seconds, no highlight
@@ -141,7 +134,7 @@ class WindowInfo {
 
     DoubleBuffer* buffer = nullptr;
 
-    MouseAction mouseAction = MA_IDLE;
+    MouseAction mouseAction = MouseAction::Idle;
     bool dragStartPending = false;
 
     /* when dragging the document around, this is previous position of the
@@ -227,7 +220,7 @@ class WindowInfo {
     void CreateInfotip(const WCHAR* text, RectI& rc, bool multiline = false);
     void DeleteInfotip();
     void ShowNotification(const WCHAR* message, int options = NOS_DEFAULT,
-                          NotificationGroup groupId = NG_RESPONSE_TO_ACTION);
+                          NotificationGroupId groupId = NG_RESPONSE_TO_ACTION);
 
     bool CreateUIAProvider();
 };

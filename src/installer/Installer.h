@@ -46,19 +46,10 @@ extern int gButtonDy;
 
 #define WM_APP_INSTALLATION_FINISHED (WM_APP + 1)
 
-struct GlobalData {
+struct InstUninstGlobals {
     bool silent;
     bool showUsageAndQuit;
     WCHAR* installDir;
-#ifndef BUILD_UNINSTALLER
-    bool registerAsDefault;
-    bool installPdfFilter;
-    bool installPdfPreviewer;
-    bool keepBrowserPlugin;
-    bool justExtractFiles;
-    bool autoUpdate;
-#endif
-
     WCHAR* firstError;
     HANDLE hThread;
     bool success;
@@ -69,12 +60,13 @@ struct PayloadInfo {
     bool install;
 };
 
-extern GlobalData gGlobalData;
+extern InstUninstGlobals gInstUninstGlobals;
 extern PayloadInfo gPayloadData[];
 extern WCHAR* gSupportedExts[];
 extern HWND gHwndFrame;
 extern HWND gHwndButtonExit;
 extern HWND gHwndButtonInstUninst;
+extern HBRUSH ghbrBackground;
 extern HFONT gFontDefault;
 extern WCHAR* gMsgError;
 extern bool gShowOptions;
@@ -85,51 +77,44 @@ extern Gdiplus::Color COLOR_MSG_WELCOME;
 extern Gdiplus::Color COLOR_MSG_OK;
 extern Gdiplus::Color COLOR_MSG_INSTALLATION;
 extern Gdiplus::Color COLOR_MSG_FAILED;
+extern Gdiplus::Color gCol1;
+extern Gdiplus::Color gCol1Shadow;
+extern Gdiplus::Color gCol2;
+extern Gdiplus::Color gCol2Shadow;
+extern Gdiplus::Color gCol3;
+extern Gdiplus::Color gCol3Shadow;
+extern Gdiplus::Color gCol4;
+extern Gdiplus::Color gCol4Shadow;
+extern Gdiplus::Color gCol5;
+extern Gdiplus::Color gCol5Shadow;
 
-void NotifyFailed(const WCHAR* msg);
-void SetMsg(const WCHAR* msg, Gdiplus::Color color);
-WCHAR* GetInstalledExePath();
-WCHAR* GetInstalledBrowserPluginPath();
-void OnCreateWindow(HWND hwnd);
-void ShowUsage();
-void CreateMainWindow();
-const WCHAR* GetOwnPath();
-bool OnWmCommand(WPARAM wParam);
-bool CreateProcessHelper(const WCHAR* exe, const WCHAR* args = nullptr);
-WCHAR* GetUninstallerPath();
-int KillProcess(const WCHAR* processPath, bool waitUntilTerminated);
-void UninstallBrowserPlugin();
-void UninstallPdfFilter();
-void UninstallPdfPreviewer();
-void KillSumatra();
-WCHAR* GetShortcutPath(bool allUsers);
-void InvalidateFrame();
-bool CheckInstallUninstallPossible(bool silent = false);
-void CreateButtonExit(HWND hwndParent);
+void InitInstallerUninstaller();
+void OnPaintFrame(HWND hwnd);
 void OnButtonExit();
+void AnimStep();
+void CreateButtonExit(HWND hwndParent);
 HWND CreateButton(HWND hwndParent, const WCHAR* s, int id, DWORD style, SIZE& sizeOut);
 HWND CreateDefaultButton(HWND hwndParent, const WCHAR* s, int id);
 SIZE SetButtonTextAndResize(HWND hwnd, const WCHAR* s);
 SIZE GetIdealButtonSize(HWND hwnd);
 int dpiAdjust(int value);
+void InvalidateFrame();
 void InstallPdfFilter();
 void InstallPdfPreviewer();
-
-#ifdef BUILD_UNINSTALLER
-
-bool ExecuteUninstallerFromTempDir();
-BOOL IsUninstallerNeeded();
-void OnUninstallationFinished();
-DWORD WINAPI UninstallerThread(LPVOID data);
-
-#else
-
-extern HWND gHwndButtonRunSumatra;
-
-bool IsValidInstaller();
-void OnInstallationFinished();
-bool IsPdfFilterInstalled();
-bool IsPdfPreviewerInstalled();
-DWORD WINAPI InstallerThread(LPVOID data);
-
-#endif
+void UninstallPdfFilter();
+void UninstallPdfPreviewer();
+void UninstallBrowserPlugin();
+bool CheckInstallUninstallPossible(bool silent = false);
+WCHAR* GetInstalledExePath();
+WCHAR* GetUninstallerPath();
+WCHAR* GetInstalledBrowserPluginPath();
+WCHAR* GetBrowserPluginPath();
+WCHAR* GetPdfFilterPath();
+WCHAR* GetPdfPreviewerPath();
+WCHAR* GetShortcutPath(bool allUsers);
+int KillProcess(const WCHAR* processPath, bool waitUntilTerminated);
+void KillSumatra();
+bool CreateProcessHelper(const WCHAR* exe, const WCHAR* args = nullptr);
+void NotifyFailed(const WCHAR* msg);
+void SetMsg(const WCHAR* msg, Gdiplus::Color color);
+void SetDefaultMsg();

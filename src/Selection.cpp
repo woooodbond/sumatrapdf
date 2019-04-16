@@ -1,12 +1,12 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
+#include "utils/BaseUtil.h"
 #include <UIAutomationCore.h>
 #include <UIAutomationCoreApi.h>
-#include "ScopedWin.h"
-#include "Dpi.h"
-#include "WinUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/Dpi.h"
+#include "utils/WinUtil.h"
 #include "BaseEngine.h"
 #include "EngineManager.h"
 #include "SettingsStructs.h"
@@ -15,6 +15,8 @@
 #include "DisplayModel.h"
 #include "GlobalPrefs.h"
 #include "TextSelection.h"
+#include "ProgressUpdateUI.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
@@ -116,7 +118,7 @@ void PaintSelection(WindowInfo* win, HDC hdc) {
 
     Vec<RectI> rects;
 
-    if (win->mouseAction == MA_SELECTING) {
+    if (win->mouseAction == MouseAction::Selecting) {
         // during rectangle selection
         RectI selRect = win->selectionRect;
         if (selRect.dx < 0) {
@@ -131,7 +133,7 @@ void PaintSelection(WindowInfo* win, HDC hdc) {
         rects.Append(selRect);
     } else {
         // during text selection or after selection is done
-        if (MA_SELECTING_TEXT == win->mouseAction) {
+        if (MouseAction::SelectingText == win->mouseAction) {
             UpdateTextSelection(win);
             if (!win->currentTab->selectionOnPage) {
                 // prevent the selection from disappearing while the
@@ -222,7 +224,7 @@ void ZoomToSelection(WindowInfo* win, float factor, bool scrollToFit, bool relat
 void CopySelectionToClipboard(WindowInfo* win) {
     if (!win->currentTab || !win->currentTab->selectionOnPage)
         return;
-    CrashIf(win->currentTab->selectionOnPage->size() == 0 && win->mouseAction != MA_SELECTING_TEXT);
+    CrashIf(win->currentTab->selectionOnPage->size() == 0 && win->mouseAction != MouseAction::SelectingText);
     if (win->currentTab->selectionOnPage->size() == 0)
         return;
     CrashIf(!win->AsFixed());
@@ -356,7 +358,7 @@ void OnSelectionStart(WindowInfo* win, int x, int y, WPARAM key) {
 
     win->selectionRect = RectI(x, y, 0, 0);
     win->showSelection = true;
-    win->mouseAction = MA_SELECTING;
+    win->mouseAction = MouseAction::Selecting;
 
     bool isShift = IsShiftPressed();
     bool isCtrl = IsCtrlPressed();
@@ -368,7 +370,7 @@ void OnSelectionStart(WindowInfo* win, int x, int y, WPARAM key) {
         if (dm->ValidPageNo(pageNo)) {
             PointD pt = dm->CvtFromScreen(PointI(x, y), pageNo);
             dm->textSelection->StartAt(pageNo, pt.x, pt.y);
-            win->mouseAction = MA_SELECTING_TEXT;
+            win->mouseAction = MouseAction::SelectingText;
         }
     }
 
@@ -383,14 +385,14 @@ void OnSelectionStop(WindowInfo* win, int x, int y, bool aborted) {
     KillTimer(win->hwndCanvas, SMOOTHSCROLL_TIMER_ID);
 
     // update the text selection before changing the selectionRect
-    if (MA_SELECTING_TEXT == win->mouseAction)
+    if (MouseAction::SelectingText == win->mouseAction)
         UpdateTextSelection(win);
 
     win->selectionRect = RectI::FromXY(win->selectionRect.x, win->selectionRect.y, x, y);
     if (aborted ||
-        (MA_SELECTING == win->mouseAction ? win->selectionRect.IsEmpty() : !win->currentTab->selectionOnPage))
+        (MouseAction::Selecting == win->mouseAction ? win->selectionRect.IsEmpty() : !win->currentTab->selectionOnPage))
         DeleteOldSelectionInfo(win, true);
-    else if (win->mouseAction == MA_SELECTING) {
+    else if (win->mouseAction == MouseAction::Selecting) {
         win->currentTab->selectionOnPage = SelectionOnPage::FromRectangle(win->AsFixed(), win->selectionRect);
         win->showSelection = win->currentTab->selectionOnPage != nullptr;
     }

@@ -1,13 +1,11 @@
-#include "BaseUtil.h"
+#include "utils/BaseUtil.h"
 
-#include "WinUtil.h"
+#include "utils/WinUtil.h"
 #include "Win32Window.h"
-#include "FileUtil.h"
+#include "utils/FileUtil.h"
 #include "EditCtrl.h" // TODO: for MsgFilter
 
 #define WIN_CLASS L"WC_WIN32_WINDOW"
-
-static ATOM wndClass = 0;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     if (WM_CREATE == msg) {
@@ -66,54 +64,37 @@ Exit:
     return DefWindowProc(hwnd, msg, wp, lp);
 }
 
-static ATOM RegisterClass(Win32Window* w) {
-    if (wndClass != 0) {
-        return wndClass;
+static void RegisterClass() {
+    static ATOM atom = 0;
+
+    if (atom != 0) {
+        // already registered
+        return;
     }
 
-    WNDCLASSEXW wcex = {0};
-    auto hInst = GetInstance();
-    wcex.cbSize = sizeof(WNDCLASSEXW);
-
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = WndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = hInst;
-    wcex.hIcon = w->hIcon;
-    wcex.hIconSm = w->hIconSm;
-    wcex.lpszMenuName = w->lpszMenuName;
-    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszClassName = WIN_CLASS;
-
-    wndClass = RegisterClassExW(&wcex);
-    return wndClass;
+    WNDCLASSEXW wcex = {};
+    FillWndClassEx(wcex, WIN_CLASS, WndProc);
+    atom = RegisterClassExW(&wcex);
+    CrashIf(!atom);
 }
 
-void InitWin32Window(Win32Window* w, HWND parent, RECT* initialPosition) {
-    w->parent = parent;
+Win32Window::Win32Window(HWND parent, RECT* initialPosition) {
+    this->parent = parent;
     if (initialPosition) {
-        w->initialPos = *initialPosition;
+        this->initialPos = *initialPosition;
     }
 
-    w->dwExStyle = 0;
-    w->dwStyle = WS_OVERLAPPEDWINDOW;
+    this->dwExStyle = 0;
+    this->dwStyle = WS_OVERLAPPEDWINDOW;
     if (parent != nullptr) {
-        w->dwStyle |= WS_CHILD;
+        this->dwStyle |= WS_CHILD;
     }
 }
 
-Win32Window* AllocWin32Window(HWND parent, RECT* initialPosition) {
-    auto w = AllocStruct<Win32Window>();
-    InitWin32Window(w, parent, initialPosition);
-    return w;
-}
+bool Win32Window::Create(const WCHAR* title) {
+    RegisterClass();
 
-bool CreateWin32Window(Win32Window* w, const WCHAR* title) {
-    RegisterClass(w);
-
-    RECT rc = w->initialPos;
+    RECT rc = this->initialPos;
     int x = rc.left;
     int y = rc.top;
     int dx = RectDx(rc);
@@ -124,16 +105,13 @@ bool CreateWin32Window(Win32Window* w, const WCHAR* title) {
         dx = CW_USEDEFAULT;
         dy = CW_USEDEFAULT;
     }
-    w->hwnd = CreateWindowExW(w->dwExStyle, WIN_CLASS, title, w->dwStyle, x, y, dx, dy, w->parent, nullptr,
-                              GetInstance(), (void*)w);
+    this->hwnd = CreateWindowExW(this->dwExStyle, WIN_CLASS, title, this->dwStyle, x, y, dx, dy, this->parent, nullptr,
+                                 GetInstance(), (void*)this);
 
-    return w->hwnd != nullptr;
+    return this->hwnd != nullptr;
 }
 
-void DeleteWin32Window(Win32Window* w) {
-    if (!w)
-        return;
-
+Win32Window::~Win32Window() {
     // we free w in WM_DESTROY
-    DestroyWindow(w->hwnd);
+    DestroyWindow(this->hwnd);
 }

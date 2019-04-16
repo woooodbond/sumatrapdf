@@ -294,6 +294,14 @@ inline void DeleteVecMembers(Vec<T>& v) {
     v.Reset();
 }
 
+template <typename T>
+inline void DeleteVecMembers(std::vector<T>& v) {
+    for (T& el : v) {
+        delete el;
+    }
+    v.clear();
+}
+
 namespace str {
 
 template <typename T>
@@ -526,4 +534,24 @@ class WStrList {
 
     bool Contains(const WCHAR* str) const { return -1 != Find(str); }
 };
+
+// return true if vector contains el. Can't believe it's not in STL.
+// if I was smarter, this would apply to every type that supports
+// std::begin() and std::end()
+template <typename T>
+bool vectorContains(const std::vector<T>& v, const T el) {
+    auto b = std::begin(v);
+    auto e = std::end(v);
+    auto pos = std::find(b, e, el);
+    return pos != e;
+}
+
+// remove el from a vector
+template <typename T>
+void vectorRemove(std::vector<T>& v, const T el) {
+    auto b = std::begin(gWindows);
+    auto e = std::end(gWindows);
+    // TODO: does it work if element doesn't exist in vector?
+    v.erase(std::remove(b, e, el), e);
+}
 #endif

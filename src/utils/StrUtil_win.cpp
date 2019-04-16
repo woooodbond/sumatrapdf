@@ -360,9 +360,8 @@ size_t BufSet(WCHAR* dst, size_t dstCchSize, const WCHAR* src) {
     size_t srcCchSize = str::Len(src);
     size_t toCopy = std::min(dstCchSize - 1, srcCchSize);
 
-    errno_t err = wcsncpy_s(dst, dstCchSize, src, toCopy);
-    CrashIf(err || dst[toCopy] != '\0');
-
+    memset(dst, 0, dstCchSize * sizeof(WCHAR));
+    memcpy(dst, src, toCopy * sizeof(WCHAR));
     return toCopy;
 }
 
@@ -458,7 +457,7 @@ WCHAR* FormatRomanNumeral(int number) {
    numerically instead of by pure ASCII order; we imitate Windows Explorer
    by sorting special characters before alphanumeric characters
    (e.g. ".hg" < "2.pdf" < "100.pdf" < "zzz")
-   TODO: use StrCmpLogicalW instead once we no longer support Windows 2000 */
+*/
 int CmpNatural(const WCHAR* a, const WCHAR* b) {
     CrashAlwaysIf(!a || !b);
     const WCHAR *aStart = a, *bStart = b;

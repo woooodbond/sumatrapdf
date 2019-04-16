@@ -1,15 +1,15 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "Archive.h"
-#include "FileUtil.h"
-#include "HtmlParserLookup.h"
-#include "HtmlPullParser.h"
-#include "PalmDbReader.h"
-#include "TrivialHtmlParser.h"
-#include "WinUtil.h"
-#include "ScopedWin.h"
+#include "utils/BaseUtil.h"
+#include "utils/Archive.h"
+#include "utils/FileUtil.h"
+#include "utils/HtmlParserLookup.h"
+#include "utils/HtmlPullParser.h"
+#include "utils/PalmDbReader.h"
+#include "utils/TrivialHtmlParser.h"
+#include "utils/WinUtil.h"
+#include "utils/ScopedWin.h"
 
 #include "BaseEngine.h"
 #include "EbookBase.h"
@@ -599,8 +599,8 @@ bool EpubDoc::ParseNcxToc(const char* data, size_t dataLen, const char* pagePath
         if (tok->IsTag() && tok->NameIsNS("navPoint", EPUB_NCX_NS)) {
             if (itemText) {
                 visitor->Visit(itemText, itemSrc, level);
-                itemText.Set(nullptr);
-                itemSrc.Set(nullptr);
+                itemText.Reset();
+                itemSrc.Reset();
             }
             if (tok->IsStartTag())
                 level++;
@@ -646,31 +646,32 @@ bool EpubDoc::ParseToc(EbookTocVisitor* visitor) {
 }
 
 bool EpubDoc::IsSupportedFile(const WCHAR* fileName, bool sniff) {
-    if (sniff) {
-        Archive* archive = OpenZipArchive(fileName, true);
-        OwnedData mimetype(archive->GetFileDataByName("mimetype"));
-        if (!mimetype.data) {
-            return false;
-        }
-        char* d = mimetype.data;
-        // trailing whitespace is allowed for the mimetype file
-        for (size_t i = mimetype.size; i > 0; i--) {
-            if (!str::IsWs(d[i - 1])) {
-                break;
-            }
-            d[i - 1] = '\0';
-        }
-        // a proper EPUB document has a "mimetype" file with content
-        // "application/epub+zip" as the first entry in its ZIP structure
-        /* cf. http://forums.fofou.org/sumatrapdf/topic?id=2599331
-        if (!str::Eq(zip.GetFileName(0), L"mimetype"))
-            return false; */
-        return str::Eq(mimetype.data, "application/epub+zip") ||
-               // also open renamed .ibooks files
-               // cf. http://en.wikipedia.org/wiki/IBooks#Formats
-               str::Eq(mimetype.data, "application/x-ibooks+zip");
+    if (!sniff) {
+        return str::EndsWithI(fileName, L".epub");
     }
-    return str::EndsWithI(fileName, L".epub");
+    Archive* archive = OpenZipArchive(fileName, true);
+    defer { delete archive; };
+    OwnedData mimetype(archive->GetFileDataByName("mimetype"));
+    if (!mimetype.data) {
+        return false;
+    }
+    char* d = mimetype.data;
+    // trailing whitespace is allowed for the mimetype file
+    for (size_t i = mimetype.size; i > 0; i--) {
+        if (!str::IsWs(d[i - 1])) {
+            break;
+        }
+        d[i - 1] = '\0';
+    }
+    // a proper EPUB document has a "mimetype" file with content
+    // "application/epub+zip" as the first entry in its ZIP structure
+    /* cf. http://forums.fofou.org/sumatrapdf/topic?id=2599331
+    if (!str::Eq(zip.GetFileName(0), L"mimetype"))
+        return false; */
+    return str::Eq(mimetype.data, "application/epub+zip") ||
+           // also open renamed .ibooks files
+           // cf. http://en.wikipedia.org/wiki/IBooks#Formats
+           str::Eq(mimetype.data, "application/x-ibooks+zip");
 }
 
 EpubDoc* EpubDoc::CreateFromFile(const WCHAR* fileName) {
@@ -931,7 +932,7 @@ bool Fb2Doc::ParseToc(EbookTocVisitor* visitor) {
             if (!str::IsEmpty(itemText.Get())) {
                 AutoFreeW url(str::Format(TEXT(FB2_TOC_ENTRY_MARK) L"%d", titleCount));
                 visitor->Visit(itemText, url, level);
-                itemText.Set(nullptr);
+                itemText.Reset();
             }
             inTitle = false;
         } else if (inTitle && tok->IsText()) {

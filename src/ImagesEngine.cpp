@@ -1,16 +1,16 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "Archive.h"
-#include "ScopedWin.h"
+#include "utils/BaseUtil.h"
+#include "utils/Archive.h"
+#include "utils/ScopedWin.h"
 
-#include "FileUtil.h"
-#include "GdiPlusUtil.h"
-#include "HtmlParserLookup.h"
-#include "HtmlPullParser.h"
-#include "JsonParser.h"
-#include "WinUtil.h"
+#include "utils/FileUtil.h"
+#include "utils/GdiPlusUtil.h"
+#include "utils/HtmlParserLookup.h"
+#include "utils/HtmlPullParser.h"
+#include "utils/JsonParser.h"
+#include "utils/WinUtil.h"
 
 #include "BaseEngine.h"
 #include "ImagesEngine.h"
@@ -706,7 +706,7 @@ class ImageDirTocItem : public DocTocItem {
   public:
     ImageDirTocItem(WCHAR* title, int pageNo) : DocTocItem(title, pageNo) {}
 
-    virtual PageDestination* GetLink() { return nullptr; }
+    PageDestination* GetLink() override { return nullptr; }
 };
 
 DocTocItem* ImageDirEngineImpl::GetTocTree() {
@@ -872,6 +872,13 @@ bool CbxEngineImpl::LoadFromStream(IStream* stream) {
     return FinishLoading();
 }
 
+static bool cmpArchFileInfoByName(Archive::FileInfo* f1, Archive::FileInfo* f2) {
+    const char* s1 = f1->name.data();
+    const char* s2 = f2->name.data();
+    int res = str::CmpNatural(s1, s2);
+    return res < 0;
+}
+
 bool CbxEngineImpl::FinishLoading() {
     CrashIf(!cbxFile);
     if (!cbxFile) {
@@ -911,6 +918,8 @@ bool CbxEngineImpl::FinishLoading() {
     if (nFiles == 0) {
         return false;
     }
+
+    std::sort(pageFiles.begin(), pageFiles.end(), cmpArchFileInfoByName);
 
     mediaboxes.AppendBlanks(nFiles);
     files = std::move(pageFiles);

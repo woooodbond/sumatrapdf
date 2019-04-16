@@ -1,12 +1,14 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "WinDynCalls.h"
-#include "WinUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/WinDynCalls.h"
+#include "utils/WinUtil.h"
 
 #include "SettingsStructs.h"
 #include "Colors.h"
+#include "ProgressUpdateUI.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "Caption.h"

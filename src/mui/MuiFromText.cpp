@@ -1,14 +1,14 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
-#include "StrSlice.h"
-#include "HtmlParserLookup.h"
+#include "utils/BaseUtil.h"
+#include "utils/StrSlice.h"
+#include "utils/HtmlParserLookup.h"
 #include "Mui.h"
-#include "SerializeTxt.h"
+#include "utils/SerializeTxt.h"
 #include "MuiDefs.h"
 #include "SvgPath.h"
-#include "TxtParser.h"
+#include "utils/TxtParser.h"
 
 /*
 Code to create mui controls from text description (so that it can be loaded
@@ -56,7 +56,7 @@ void FreeControlCreators() {
     ControlCreatorNode* next;
     while (curr) {
         next = curr->next;
-        free((void*)curr->typeName);
+        str::Free(curr->typeName);
         free(curr);
         curr = next;
     }
@@ -84,7 +84,7 @@ void FreeLayoutCreators() {
     LayoutCreatorNode* next;
     while (curr) {
         next = curr->next;
-        free((void*)curr->typeName);
+        str::Free(curr->typeName);
         free(curr);
         curr = next;
     }

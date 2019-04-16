@@ -79,7 +79,7 @@ class WindowInfo;
 class NotificationWnd;
 class RenderCache;
 class TabInfo;
-struct LabelWithCloseWnd;
+class LabelWithCloseWnd;
 struct SessionData;
 
 // all defined in SumatraPDF.cpp
@@ -87,7 +87,7 @@ extern bool gDebugShowLinks;
 extern bool gShowFrameRate;
 
 extern const WCHAR* gPluginURL;
-extern Vec<WindowInfo*> gWindows;
+extern std::vector<WindowInfo*> gWindows;
 extern Favorites gFavorites;
 extern FileHistory gFileHistory;
 extern WNDPROC DefWndProcCloseButton;

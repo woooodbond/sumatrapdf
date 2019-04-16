@@ -1,7 +1,7 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
+#include "utils/BaseUtil.h"
 #include "Translations.h"
 
 #ifdef DEBUG
@@ -117,7 +117,7 @@ static int gMissingTranslationsCount = 0;
 
 static void FreeMissingTranslations() {
     for (int i = 0; i < gMissingTranslationsCount; i++) {
-        free((void*)gMissingTranslations[i].translation);
+        str::Free(gMissingTranslations[i].translation);
     }
     gMissingTranslationsCount = 0;
 }

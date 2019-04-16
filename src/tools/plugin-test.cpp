@@ -3,9 +3,9 @@
 
 // this is a minimal example for how to use SumatraPDF in plugin mode
 
-#include "BaseUtil.h"
-#include "CmdLineParser.h"
-#include "FileUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/CmdLineParser.h"
+#include "utils/FileUtil.h"
 
 #define PLUGIN_TEST_NAME L"SumatraPDF Plugin Test"
 
@@ -77,7 +77,7 @@ LRESULT CALLBACK PluginParentWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 WCHAR* GetSumatraExePath() {
     // run SumatraPDF.exe either from plugin-test.exe's or the current directory
-    AutoFreeW path(path::GetAppPath(L"SumatraPDF.exe"));
+    AutoFreeW path(path::GetPathOfFileInAppDir(L"SumatraPDF.exe"));
     if (!file::Exists(path))
         return str::Dup(L"SumatraPDF.exe");
     return path.StealData();

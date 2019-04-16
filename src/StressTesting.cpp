@@ -1,16 +1,16 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "ScopedWin.h"
-#include "DirIter.h"
-#include "FileUtil.h"
-#include "HtmlParserLookup.h"
-#include "HtmlWindow.h"
-#include "Mui.h"
-#include "SimpleLog.h"
-#include "Timer.h"
-#include "WinUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/DirIter.h"
+#include "utils/FileUtil.h"
+#include "utils/HtmlParserLookup.h"
+#include "utils/HtmlWindow.h"
+#include "mui/Mui.h"
+#include "utils/SimpleLog.h"
+#include "utils/Timer.h"
+#include "utils/WinUtil.h"
 #include "BaseEngine.h"
 #include "EngineManager.h"
 #include "EbookBase.h"
@@ -24,8 +24,10 @@
 #include "EbookController.h"
 #include "GlobalPrefs.h"
 #include "RenderCache.h"
+#include "ProgressUpdateUI.h"
 #include "TextSelection.h"
 #include "TextSearch.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
@@ -41,6 +43,8 @@ static slog::Logger* gLog;
 
 static bool gIsStressTesting = false;
 static int gCurrStressTimerId = FIRST_STRESS_TIMER_ID;
+static NotificationGroupId NG_STRESS_TEST_BENCHMARK = "stressTestBenchmark";
+static NotificationGroupId NG_STRESS_TEST_SUMMARY = "stressTestSummary";
 
 bool IsStressTesting() {
     return gIsStressTesting;
@@ -638,7 +642,7 @@ bool StressTest::OpenFile(const WCHAR* fileName) {
     if (1 == pageForSearchStart) {
         // use text that is unlikely to be found, so that we search all pages
         win::SetText(win->hwndFindBox, L"!z_yt");
-        FindTextOnThread(win, FIND_FORWARD, true);
+        FindTextOnThread(win, TextSearchDirection::Forward, true);
     }
 
     int secs = SecsSinceSystemTime(stressStartTime);
@@ -677,7 +681,7 @@ bool StressTest::GoToNextPage() {
     if (currPage == pageForSearchStart) {
         // use text that is unlikely to be found, so that we search all pages
         win::SetText(win->hwndFindBox, L"!z_yt");
-        FindTextOnThread(win, FIND_FORWARD, true);
+        FindTextOnThread(win, TextSearchDirection::Forward, true);
     }
 
     if (1 == rand() % 3) {

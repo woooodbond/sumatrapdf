@@ -1,14 +1,14 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
+#include "utils/BaseUtil.h"
 #include <UIAutomationCore.h>
 #include <UIAutomationCoreApi.h>
-#include "ScopedWin.h"
-#include "FileUtil.h"
-#include "FrameRateWnd.h"
-#include "WinUtil.h"
-#include "TreeCtrl.h"
+#include "utils/ScopedWin.h"
+#include "utils/FileUtil.h"
+#include "wingui/FrameRateWnd.h"
+#include "utils/WinUtil.h"
+#include "wingui/TreeCtrl.h"
 
 #include "BaseEngine.h"
 #include "EngineManager.h"
@@ -19,18 +19,22 @@
 #include "DisplayModel.h"
 #include "EbookController.h"
 #include "GlobalPrefs.h"
+#include "ProgressUpdateUI.h"
 #include "TextSelection.h"
 #include "TextSearch.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
 #include "resource.h"
 #include "Caption.h"
-#include "Notifications.h"
 #include "Selection.h"
 #include "StressTesting.h"
 #include "Translations.h"
 #include "uia/Provider.h"
+
+NotificationGroupId NG_CURSOR_POS_HELPER = "cursorPosHelper";
+NotificationGroupId NG_RESPONSE_TO_ACTION = "responseToAction";
 
 WindowInfo::WindowInfo(HWND hwnd) {
     hwndFrame = hwnd;
@@ -65,8 +69,8 @@ WindowInfo::~WindowInfo() {
     // (all controllers should have been deleted prior to WindowInfo, though)
     delete cbHandler;
 
-    DeleteFrameRateWnd(frameRateWnd);
-    DeleteTreeCtrl(tocTreeCtrl);
+    delete frameRateWnd;
+    delete tocTreeCtrl;
     free(sidebarSplitter);
     free(favSplitter);
     free(tocLabelWithClose);
@@ -227,16 +231,17 @@ void WindowInfo::DeleteInfotip() {
     infotipVisible = false;
 }
 
-void WindowInfo::ShowNotification(const WCHAR* message, int options, NotificationGroup groupId) {
+void WindowInfo::ShowNotification(const WCHAR* msg, int options, NotificationGroupId groupId) {
     int timeoutMS = (options & NOS_PERSIST) ? 0 : 3000;
     bool highlight = (options & NOS_HIGHLIGHT);
 
-    NotificationWnd* wnd = new NotificationWnd(hwndCanvas, message, timeoutMS, highlight, [this](NotificationWnd* wnd) {
-        this->notifications->RemoveNotification(wnd);
-    });
+    NotificationWnd* wnd = new NotificationWnd(hwndCanvas, timeoutMS);
+    wnd->highlight = highlight;
+    wnd->wndRemovedCb = [this](NotificationWnd* wnd) { this->notifications->RemoveNotification(wnd); };
     if (NG_CURSOR_POS_HELPER == groupId) {
         wnd->shrinkLimit = 0.7f;
     }
+    wnd->Create(msg, nullptr);
     notifications->Add(wnd, groupId);
 }
 

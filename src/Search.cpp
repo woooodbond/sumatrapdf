@@ -6,11 +6,11 @@
  * DDE commands, including search
  */
 
-#include "BaseUtil.h"
-#include "ScopedWin.h"
-#include "FileUtil.h"
-#include "UITask.h"
-#include "WinUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/FileUtil.h"
+#include "utils/UITask.h"
+#include "utils/WinUtil.h"
 #include "BaseEngine.h"
 #include "EngineManager.h"
 #include "SettingsStructs.h"
@@ -19,18 +19,21 @@
 #include "DisplayModel.h"
 #include "GlobalPrefs.h"
 #include "PdfSync.h"
+#include "ProgressUpdateUI.h"
 #include "TextSelection.h"
 #include "TextSearch.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
 #include "resource.h"
 #include "AppTools.h"
-#include "Notifications.h"
 #include "Search.h"
 #include "Selection.h"
 #include "SumatraDialogs.h"
 #include "Translations.h"
+
+NotificationGroupId NG_FIND_PROGRESS = "findProgress";
 
 // don't show the Search UI for document types that don't
 // support extracting text and/or navigating to a specific
@@ -96,21 +99,21 @@ void OnMenuFind(WindowInfo* win) {
         dm->textSearch->SetSensitive(matchCase);
     }
 
-    FindTextOnThread(win, FIND_FORWARD, true);
+    FindTextOnThread(win, TextSearchDirection::Forward, true);
 }
 
 void OnMenuFindNext(WindowInfo* win) {
     if (!win->IsDocLoaded() || !NeedsFindUI(win))
         return;
     if (SendMessage(win->hwndToolbar, TB_ISBUTTONENABLED, IDM_FIND_NEXT, 0))
-        FindTextOnThread(win, FIND_FORWARD, true);
+        FindTextOnThread(win, TextSearchDirection::Forward, true);
 }
 
 void OnMenuFindPrev(WindowInfo* win) {
     if (!win->IsDocLoaded() || !NeedsFindUI(win))
         return;
     if (SendMessage(win->hwndToolbar, TB_ISBUTTONENABLED, IDM_FIND_PREV, 0))
-        FindTextOnThread(win, FIND_BACKWARD, true);
+        FindTextOnThread(win, TextSearchDirection::Backward, true);
 }
 
 void OnMenuFindMatchCase(WindowInfo* win) {
@@ -141,21 +144,21 @@ void OnMenuFindSel(WindowInfo* win, TextSearchDirection direction) {
     FindTextOnThread(win, direction, true);
 }
 
-static void ShowSearchResult(WindowInfo& win, TextSel* result, bool addNavPt) {
+static void ShowSearchResult(WindowInfo* win, TextSel* result, bool addNavPt) {
     CrashIf(0 == result->len || !result->pages || !result->rects);
     if (0 == result->len || !result->pages || !result->rects)
         return;
 
-    DisplayModel* dm = win.AsFixed();
+    DisplayModel* dm = win->AsFixed();
     if (addNavPt || !dm->PageShown(result->pages[0]) ||
         (dm->GetZoomVirtual() == ZOOM_FIT_PAGE || dm->GetZoomVirtual() == ZOOM_FIT_CONTENT)) {
-        win.ctrl->GoToPage(result->pages[0], addNavPt);
+        win->ctrl->GoToPage(result->pages[0], addNavPt);
     }
 
     dm->textSelection->CopySelection(dm->textSearch);
-    UpdateTextSelection(&win, false);
+    UpdateTextSelection(win, false);
     dm->ShowResultRectToScreen(result);
-    win.RepaintAsync();
+    win->RepaintAsync();
 }
 
 void ClearSearchResult(WindowInfo* win) {
@@ -199,9 +202,11 @@ struct FindThreadData : public ProgressUpdateUI {
 
         if (showProgress) {
             auto notificationsInCb = this->win->notifications;
-            wnd = new NotificationWnd(
-                win->hwndCanvas, L"", _TR("Searching %d of %d..."),
-                [notificationsInCb](NotificationWnd* wnd) { notificationsInCb->RemoveNotification(wnd); });
+            wnd = new NotificationWnd(win->hwndCanvas, 0);
+            wnd->wndRemovedCb = [notificationsInCb](NotificationWnd* wnd) {
+                notificationsInCb->RemoveNotification(wnd);
+            };
+            wnd->Create(L"", _TR("Searching %d of %d..."));
             win->notifications->Add(wnd, NG_FIND_PROGRESS);
         }
 
@@ -260,7 +265,7 @@ static void FindEndTask(WindowInfo* win, FindThreadData* ftd, TextSel* textSel, 
     if (!win->IsDocLoaded()) {
         // the UI has already been disabled and hidden
     } else if (textSel) {
-        ShowSearchResult(*win, textSel, wasModifiedCanceled);
+        ShowSearchResult(win, textSel, wasModifiedCanceled);
         ftd->HideUI(true, loopedAround);
     } else {
         // nothing found or search canceled
@@ -288,7 +293,7 @@ static DWORD WINAPI FindThread(LPVOID data) {
     bool loopedAround = false;
     if (!win->findCanceled && !rect) {
         // With no further findings, start over (unless this was a new search from the beginning)
-        int startPage = (FIND_FORWARD == ftd->direction) ? 1 : win->ctrl->PageCount();
+        int startPage = (TextSearchDirection::Forward == ftd->direction) ? 1 : win->ctrl->PageCount();
         if (!ftd->wasModified || win->ctrl->CurrentPageNo() != startPage) {
             loopedAround = true;
             rect = dm->textSearch->FindFirst(startPage, ftd->text, ftd);
@@ -422,9 +427,10 @@ bool OnInverseSearch(WindowInfo* win, int x, int y) {
     }
 
     WCHAR* inverseSearch = gGlobalPrefs->inverseSearchCmdLine;
-    if (!inverseSearch)
+    if (!inverseSearch) {
         // Detect a text editor and use it as the default inverse search handler for now
-        inverseSearch = AutoDetectInverseSearchCommands();
+        inverseSearch = AutoDetectInverseSearchCommands(nullptr);
+    }
 
     AutoFreeW cmdline;
     if (inverseSearch)
@@ -531,7 +537,7 @@ static const WCHAR* HandleSyncCmd(const WCHAR* cmd, DDEACK& ack) {
     // allow to omit the pdffile path, so that editors don't have to know about
     // multi-file projects (requires that the PDF has already been opened)
     if (!next) {
-        pdfFile.Set(nullptr);
+        pdfFile.Reset();
         next = str::Parse(cmd, L"[" DDECOMMAND_SYNC L"(\"%S\",%u,%u)]", &srcFile, &line, &col);
         if (!next)
             next = str::Parse(cmd, L"[" DDECOMMAND_SYNC L"(\"%S\",%u,%u,%u,%u)]", &srcFile, &line, &col, &newWindow,

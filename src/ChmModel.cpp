@@ -1,12 +1,11 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-// utils
-#include "BaseUtil.h"
-#include "Dict.h"
-#include "HtmlWindow.h"
-#include "UITask.h"
-#include "ScopedWin.h"
+#include "utils/BaseUtil.h"
+#include "utils/Dict.h"
+#include "utils/HtmlWindow.h"
+#include "utils/UITask.h"
+#include "utils/ScopedWin.h"
 
 #include "BaseEngine.h"
 #include "EbookBase.h"
@@ -31,7 +30,7 @@ class ChmTocItem : public DocTocItem, public PageDestination {
         title = nullptr;
     }
 
-    virtual PageDestination* GetLink() { return url ? this : nullptr; }
+    PageDestination* GetLink() override { return url ? this : nullptr; }
 
     // PageDestination
     PageDestType GetDestType() const override {

@@ -1,3 +1,4 @@
+
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
@@ -58,11 +59,18 @@ inline bool EqNIx(const char* s, size_t len, const char* s2) {
 char* DupN(const char* s, size_t lenCch);
 char* ToLowerInPlace(char* s);
 
+inline void Free(const char* s) {
+    free((void*)s);
+}
+
 #if OS_WIN
 bool StartsWithI(const WCHAR* str, const WCHAR* txt);
 bool EndsWith(const WCHAR* txt, const WCHAR* end);
 bool EndsWithI(const WCHAR* txt, const WCHAR* end);
 WCHAR* DupN(const WCHAR* s, size_t lenCch);
+inline void Free(const WCHAR* s) {
+    free((void*)s);
+}
 WCHAR* ToLowerInPlace(WCHAR* s);
 
 OwnedData ToMultiByte(const WCHAR* txt, UINT CodePage, int cchTxtLen = -1);
@@ -161,6 +169,8 @@ bool HexToMem(const char* s, unsigned char* buf, size_t bufLen);
 const char* Parse(const char* str, const char* format, ...);
 const char* Parse(const char* str, size_t len, const char* format, ...);
 
+int CmpNatural(const char*, const char*);
+
 #if OS_WIN
 size_t TransChars(WCHAR* str, const WCHAR* oldChars, const WCHAR* newChars);
 WCHAR* Replace(const WCHAR* s, const WCHAR* toReplace, const WCHAR* replaceWith);
@@ -173,7 +183,7 @@ WCHAR* FormatFloatWithThousandSep(double number, LCID locale = LOCALE_USER_DEFAU
 WCHAR* FormatNumWithThousandSep(size_t num, LCID locale = LOCALE_USER_DEFAULT);
 WCHAR* FormatRomanNumeral(int number);
 
-int CmpNatural(const WCHAR* a, const WCHAR* b);
+int CmpNatural(const WCHAR*, const WCHAR*);
 
 const WCHAR* Parse(const WCHAR* str, const WCHAR* format, ...);
 

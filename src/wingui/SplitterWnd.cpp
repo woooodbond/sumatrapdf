@@ -1,11 +1,11 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
+#include "utils/BaseUtil.h"
 #include "SplitterWnd.h"
 
-#include "BitManip.h"
-#include "WinUtil.h"
+#include "utils/BitManip.h"
+#include "utils/WinUtil.h"
 
 // the technique for drawing the splitter for non-live resize is described
 // at http://www.catch22.net/tuts/splitter-windows
@@ -15,12 +15,15 @@
 static HBITMAP splitterBmp = nullptr;
 static HBRUSH splitterBrush = nullptr;
 
-struct SplitterWnd {
+class SplitterWnd {
+  public:
+    SplitterWnd(const SplitterWndCb& cb) : cb(cb) {}
+    ~SplitterWnd() {}
+
     // none of this data needs to be freed by us
     HWND hwnd;
-    void* ctx;
     SplitterType type;
-    SplitterCallback cb;
+    SplitterWndCb cb;
     COLORREF bgCol;
     bool isLive;
     PointI prevResizeLinePos;
@@ -77,7 +80,7 @@ static void DrawResizeLineVH(SplitterWnd* w, bool isVert, PointI pos) {
 static void DrawResizeLine(SplitterWnd* w, bool erasePrev, bool drawCurr) {
     PointI pos;
     GetCursorPosInHwnd(GetParent(w->hwnd), pos);
-    bool isVert = w->type != SplitterHoriz;
+    bool isVert = w->type != SplitterType::Horiz;
 
     if (erasePrev) {
         DrawResizeLineVH(w, isVert, w->prevResizeLinePos);
@@ -127,18 +130,18 @@ static LRESULT CALLBACK WndProcSplitter(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             }
         }
         ReleaseCapture();
-        w->cb(w->ctx, true);
+        w->cb(true);
         ScheduleRepaint(w->hwnd);
         return 0;
     }
 
     if (WM_MOUSEMOVE == msg) {
         LPWSTR curId = IDC_SIZENS;
-        if (SplitterVert == w->type) {
+        if (SplitterType::Vert == w->type) {
             curId = IDC_SIZEWE;
         }
         if (hwnd == GetCapture()) {
-            bool resizingAllowed = w->cb(w->ctx, false);
+            bool resizingAllowed = w->cb(false);
             if (!resizingAllowed) {
                 curId = IDC_NO;
             } else if (!w->isLive) {
@@ -159,25 +162,28 @@ Exit:
 }
 
 // call only once at the beginning of program
-void RegisterSplitterWndClass() {
-    if (splitterBmp)
+static void RegisterSplitterWndClass() {
+    static ATOM atom = 0;
+
+    if (atom != 0) {
+        // already registered
         return;
+    }
 
     static WORD dotPatternBmp[8] = {0x00aa, 0x0055, 0x00aa, 0x0055, 0x00aa, 0x0055, 0x00aa, 0x0055};
 
     splitterBmp = CreateBitmap(8, 8, 1, 1, dotPatternBmp);
     splitterBrush = CreatePatternBrush(splitterBmp);
 
-    WNDCLASSEX wcex;
+    WNDCLASSEX wcex = {};
     FillWndClassEx(wcex, SPLITTER_CLASS_NAME, WndProcSplitter);
-    RegisterClassEx(&wcex);
+    atom = RegisterClassEx(&wcex);
 }
 
 // caller needs to free() the result
-SplitterWnd* CreateSplitter(HWND parent, SplitterType type, void* ctx, SplitterCallback cb) {
-    SplitterWnd* w = AllocStruct<SplitterWnd>();
-    w->ctx = ctx;
-    w->cb = cb;
+SplitterWnd* CreateSplitter(HWND parent, SplitterType type, const SplitterWndCb& cb) {
+    RegisterSplitterWndClass();
+    SplitterWnd* w = new SplitterWnd(cb);
     w->type = type;
     w->bgCol = GetSysColor(COLOR_BTNFACE);
     w->isLive = true;

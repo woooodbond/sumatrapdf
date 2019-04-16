@@ -1,10 +1,10 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
-#include "HtmlParserLookup.h"
+#include "utils/BaseUtil.h"
+#include "utils/HtmlParserLookup.h"
 #include "Mui.h"
-#include "BitManip.h"
+#include "utils/BitManip.h"
 
 namespace mui {
 
@@ -99,18 +99,18 @@ void Control::NotifyMouseLeave() {
 }
 
 Control::~Control() {
-    delete layout;
-    DeleteVecMembers(children);
-    free(toolTip);
-    free((void*)namedEventClick);
+    delete this->layout;
+    DeleteVecMembers(this->children);
+    free(this->toolTip);
+    str::Free(this->namedEventClick);
 }
 
 void Control::SetParent(Control* newParent) {
-    parent = newParent;
+    this->parent = newParent;
 }
 
 Control* Control::GetChild(size_t idx) const {
-    return children.at(idx);
+    return this->children.at(idx);
 }
 
 size_t Control::GetChildCount() const {

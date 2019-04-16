@@ -1,10 +1,10 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: Simplified BSD (see COPYING.BSD) */
 
-#include "BaseUtil.h"
-#include "HtmlParserLookup.h"
+#include "utils/BaseUtil.h"
+#include "utils/HtmlParserLookup.h"
 #include "Mui.h"
-#include "WinUtil.h"
+#include "utils/WinUtil.h"
 
 namespace mui {
 
@@ -30,7 +30,7 @@ class FontListItem {
         cf.hFont = hFont;
     }
     ~FontListItem() {
-        free((void*)cf.name);
+        str::Free(cf.name);
         ::delete cf.font;
         DeleteObject(cf.hFont);
         delete next;

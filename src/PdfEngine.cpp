@@ -7,15 +7,15 @@ extern "C" {
 #include <mupdf/fitz.h>
 }
 
-#include "BaseUtil.h"
-#include "Archive.h"
-#include "ScopedWin.h"
-#include "FileUtil.h"
-#include "HtmlParserLookup.h"
-#include "HtmlPullParser.h"
-#include "TrivialHtmlParser.h"
-#include "WinUtil.h"
-#include "ZipUtil.h"
+#include "utils/BaseUtil.h"
+#include "utils/Archive.h"
+#include "utils/ScopedWin.h"
+#include "utils/FileUtil.h"
+#include "utils/HtmlParserLookup.h"
+#include "utils/HtmlPullParser.h"
+#include "utils/TrivialHtmlParser.h"
+#include "utils/WinUtil.h"
+#include "utils/ZipUtil.h"
 #include "BaseEngine.h"
 #include "PdfEngine.h"
 
@@ -1288,7 +1288,7 @@ class PdfTocItem : public DocTocItem {
   public:
     PdfTocItem(WCHAR* title, PdfLink link) : DocTocItem(title), link(link) {}
 
-    virtual PageDestination* GetLink() { return &link; }
+    PageDestination* GetLink() override { return &link; }
 };
 
 class PdfImage : public PageElement {
@@ -3360,7 +3360,7 @@ class XpsTocItem : public DocTocItem {
   public:
     XpsTocItem(WCHAR* title, XpsLink link) : DocTocItem(title), link(link) {}
 
-    virtual PageDestination* GetLink() { return &link; }
+    PageDestination* GetLink() override { return &link; }
 };
 
 class XpsImage : public PageElement {

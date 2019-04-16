@@ -1,23 +1,23 @@
 /* Copyright 2018 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-#include "BaseUtil.h"
-#include "ScopedWin.h"
-#include "WinDynCalls.h"
-#include "CmdLineParser.h"
-#include "DbgHelpDyn.h"
-#include "Dpi.h"
-#include "FileUtil.h"
-#include "FileWatcher.h"
-#include "HtmlParserLookup.h"
-#include "LabelWithCloseWnd.h"
-#include "Mui.h"
-#include "SplitterWnd.h"
-#include "SquareTreeParser.h"
-#include "ThreadUtil.h"
-#include "UITask.h"
-#include "WinUtil.h"
-#include "DebugLog.h"
+#include "utils/BaseUtil.h"
+#include "utils/ScopedWin.h"
+#include "utils/WinDynCalls.h"
+#include "utils/CmdLineParser.h"
+#include "utils/DbgHelpDyn.h"
+#include "utils/Dpi.h"
+#include "utils/FileUtil.h"
+#include "utils/FileWatcher.h"
+#include "utils/HtmlParserLookup.h"
+#include "wingui/LabelWithCloseWnd.h"
+#include "mui/Mui.h"
+#include "wingui/SplitterWnd.h"
+#include "utils/SquareTreeParser.h"
+#include "utils/ThreadUtil.h"
+#include "utils/UITask.h"
+#include "utils/WinUtil.h"
+#include "utils/DebugLog.h"
 #include "BaseEngine.h"
 #include "EngineManager.h"
 #include "SettingsStructs.h"
@@ -27,8 +27,10 @@
 #include "GlobalPrefs.h"
 #include "PdfSync.h"
 #include "RenderCache.h"
+#include "ProgressUpdateUI.h"
 #include "TextSelection.h"
 #include "TextSearch.h"
+#include "Notifications.h"
 #include "SumatraPDF.h"
 #include "WindowInfo.h"
 #include "TabInfo.h"
@@ -40,7 +42,6 @@
 #include "Caption.h"
 #include "CrashHandler.h"
 #include "FileThumbnails.h"
-#include "Notifications.h"
 #include "Print.h"
 #include "Search.h"
 #include "Selection.h"
@@ -53,12 +54,14 @@
 #include "Version.h"
 #include "Tests.h"
 #include "Menu.h"
+#include "utils/Archive.h"
+#include "AppTools.h"
 
 #define CRASH_DUMP_FILE_NAME L"sumatrapdfcrash.dmp"
 
 #ifdef DEBUG
 static bool TryLoadMemTrace() {
-    AutoFreeW dllPath(path::GetAppPath(L"memtrace.dll"));
+    AutoFreeW dllPath(path::GetPathOfFileInAppDir(L"memtrace.dll"));
     if (!LoadLibrary(dllPath))
         return false;
     return true;
@@ -77,7 +80,7 @@ class FileExistenceChecker : public ThreadBase {
 
   public:
     FileExistenceChecker() { GetFilePathsToCheck(); }
-    virtual void Run() override;
+    void Run() override;
 };
 
 static FileExistenceChecker* gFileExistenceChecker = nullptr;
@@ -133,22 +136,23 @@ void FileExistenceChecker::Run() {
     });
 }
 
-static void MakePluginWindow(WindowInfo& win, HWND hwndParent) {
-    AssertCrash(IsWindow(hwndParent));
-    AssertCrash(gPluginMode);
+static void MakePluginWindow(WindowInfo* win, HWND hwndParent) {
+    CrashIf(!IsWindow(hwndParent));
+    CrashIf(!gPluginMode);
 
-    long ws = GetWindowLong(win.hwndFrame, GWL_STYLE);
+    auto hwndFrame = win->hwndFrame;
+    long ws = GetWindowLong(hwndFrame, GWL_STYLE);
     ws &= ~(WS_POPUP | WS_BORDER | WS_CAPTION | WS_THICKFRAME);
     ws |= WS_CHILD;
-    SetWindowLong(win.hwndFrame, GWL_STYLE, ws);
+    SetWindowLong(hwndFrame, GWL_STYLE, ws);
 
-    SetParent(win.hwndFrame, hwndParent);
-    MoveWindow(win.hwndFrame, ClientRect(hwndParent));
-    ShowWindow(win.hwndFrame, SW_SHOW);
-    UpdateWindow(win.hwndFrame);
+    SetParent(hwndFrame, hwndParent);
+    MoveWindow(hwndFrame, ClientRect(hwndParent));
+    ShowWindow(hwndFrame, SW_SHOW);
+    UpdateWindow(hwndFrame);
 
     // from here on, we depend on the plugin's host to resize us
-    SetFocus(win.hwndFrame);
+    SetFocus(hwndFrame);
 }
 
 static bool RegisterWinClass() {
@@ -174,9 +178,6 @@ static bool RegisterWinClass() {
     atom = RegisterClassEx(&wcex);
     CrashIf(!atom);
 
-    RegisterNotificationsWndClass();
-    RegisterSplitterWndClass();
-    RegisterLabelWithCloseWnd();
     RegisterCaptionWndClass();
     return true;
 }
@@ -239,7 +240,7 @@ static WindowInfo* LoadOnStartup(const WCHAR* filePath, CommandLineInfo& i, bool
             win->ctrl->GoToPage(i.pageNumber, false);
     }
     if (i.hwndPluginParent)
-        MakePluginWindow(*win, i.hwndPluginParent);
+        MakePluginWindow(win, i.hwndPluginParent);
     if (!win->IsDocLoaded() || !isFirstWin)
         return win;
 
@@ -519,6 +520,16 @@ static void ShutdownCommon() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 }
 
+// TODO: this will expand to extract everything
+static void ExtractUnrar() {
+    const WCHAR* path = ExractUnrarDll();
+    if (path == nullptr) {
+        return;
+    }
+    SetUnrarDllPath(path);
+    str::Free(path);
+}
+
 int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR cmdLine,
                      _In_ int nCmdShow) {
     UNUSED(hPrevInstance);
@@ -575,6 +586,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 #endif
 
     SetupCrashHandler();
+    ExtractUnrar();
 
     ScopedOle ole;
     InitAllCommonControls();

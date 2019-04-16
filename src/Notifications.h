@@ -5,17 +5,21 @@ class NotificationWnd;
 
 typedef std::function<void(NotificationWnd*)> NotificationWndRemovedCallback;
 
+// this is a unique id for notification group that allows decoupling it
+// from the rest of the code.
+typedef const char* NotificationGroupId;
+
 class NotificationWnd : public ProgressUpdateUI {
   public:
-    static const int TIMEOUT_TIMER_ID = 1;
-
-    HWND self = nullptr;
+    HWND parent = nullptr;
+    HWND hwnd = nullptr;
+    int timeoutInMS = 0; // 0 means no timeout
     bool hasProgress = false;
     bool hasCancel = false;
 
     HFONT font = nullptr;
     bool highlight = false;
-    NotificationWndRemovedCallback wndRemovedCb;
+    NotificationWndRemovedCallback wndRemovedCb = nullptr;
 
     // only used for progress notifications
     bool isCanceled = false;
@@ -23,53 +27,29 @@ class NotificationWnd : public ProgressUpdateUI {
     int progressWidth = 0;
     WCHAR* progressMsg = nullptr; // must contain two %d (for current and total)
 
-    void CreatePopup(HWND parent, const WCHAR* message);
-    void UpdateWindowPosition(const WCHAR* message, bool init = false);
+    bool Create(const WCHAR* msg, const WCHAR* progressMsg);
+    void UpdateWindowPosition(const WCHAR* message, bool init);
 
-    int groupId = 0; // for use by Notifications
+    NotificationGroupId groupId = nullptr; // for use by Notifications
 
     // to reduce flicker, we might ask the window to shrink the size less often
     // (notifcation windows are only shrunken if by less than factor shrinkLimit)
     float shrinkLimit = 1.0f;
 
     // Note: in most cases use WindowInfo::ShowNotification()
-    NotificationWnd(HWND parent, const WCHAR* message, int timeoutInMS = 0, bool highlight = false,
-                    const NotificationWndRemovedCallback& cb = nullptr) {
-        hasCancel = (0 == timeoutInMS);
-        wndRemovedCb = cb;
-        this->highlight = highlight;
-        CreatePopup(parent, message);
-        if (timeoutInMS)
-            SetTimer(self, TIMEOUT_TIMER_ID, timeoutInMS, nullptr);
-    }
+    explicit NotificationWnd(HWND parent, int timeoutInMS);
 
-    NotificationWnd(HWND parent, const WCHAR* message, const WCHAR* progressMsg,
-                    const NotificationWndRemovedCallback& cb = nullptr) {
-        hasProgress = true;
-        hasCancel = true;
-        wndRemovedCb = cb;
-        this->progressMsg = str::Dup(progressMsg);
-        CreatePopup(parent, message);
-    }
-
-    ~NotificationWnd() {
-        DestroyWindow(self);
-        DeleteObject(font);
-        free(progressMsg);
-    }
-
-    HWND hwnd() { return self; }
+    virtual ~NotificationWnd();
 
     void UpdateMessage(const WCHAR* message, int timeoutInMS = 0, bool highlight = false);
-    static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     // ProgressUpdateUI methods
-    virtual void UpdateProgress(int current, int total);
-    virtual bool WasCanceled();
+    void UpdateProgress(int current, int total) override;
+    bool WasCanceled() override;
 };
 
 class Notifications {
-    Vec<NotificationWnd*> wnds;
+    std::vector<NotificationWnd*> wnds;
 
     int GetWndX(NotificationWnd* wnd);
     void MoveBelow(NotificationWnd* fix, NotificationWnd* move);
@@ -78,17 +58,15 @@ class Notifications {
   public:
     ~Notifications() { DeleteVecMembers(wnds); }
 
-    bool Contains(NotificationWnd* wnd) { return wnds.Contains(wnd); }
+    bool Contains(NotificationWnd* wnd) const { return vectorContains(this->wnds, wnd); }
 
     // groupId is used to classify notifications and causes a notification
     // to replace any other notification of the same group
-    void Add(NotificationWnd* wnd, int groupId = 0);
-    NotificationWnd* GetForGroup(int groupId);
-    void RemoveForGroup(int groupId);
+    void Add(NotificationWnd*, NotificationGroupId);
+    NotificationWnd* GetForGroup(NotificationGroupId) const;
+    void RemoveForGroup(NotificationGroupId);
     void Relayout();
 
     // NotificationWndCallback methods
     void RemoveNotification(NotificationWnd* wnd);
 };
-
-void RegisterNotificationsWndClass();
